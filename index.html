@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1">
+<title>Mis Compras</title>
+<meta name="description" content="Lista de compras personal, offline y accesible por NFC">
+<meta name="theme-color" content="#0b0b0d">
+<meta name="color-scheme" content="dark">
+
+<!-- PWA -->
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-192.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Mis Compras">
+<meta name="mobile-web-app-capable" content="yes">
+
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+<div class="app">
+
+  <!-- Header -->
+  <header class="app-header">
+    <h1 class="app-title"><span class="app-title-emoji" aria-hidden="true">🛒</span> Mis compras</h1>
+    <button id="btn-menu" class="icon-btn" aria-label="Más opciones" aria-haspopup="true" aria-expanded="false">
+      <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><circle cx="12" cy="5" r="1.6"/><circle cx="12" cy="12" r="1.6"/><circle cx="12" cy="19" r="1.6"/></svg>
+    </button>
+  </header>
+
+  <!-- Top actions -->
+  <div class="top-actions">
+    <button id="btn-add-item" class="btn btn-primary btn-block">
+      <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
+      Añadir alimento
+    </button>
+  </div>
+
+  <!-- List of categories -->
+  <main id="list" class="list" aria-live="polite">
+    <!-- rendered by JS -->
+  </main>
+
+  <!-- Empty state (whole list) -->
+  <div id="empty-state" class="empty-state" hidden>
+    <div class="empty-state-emoji" aria-hidden="true">🛒</div>
+    <p class="empty-state-title">Tu lista está vacía</p>
+    <p class="empty-state-sub">Toca «Añadir alimento» para empezar</p>
+  </div>
+
+  <!-- New category button -->
+  <div class="bottom-actions">
+    <button id="btn-add-category" class="btn btn-ghost btn-block">
+      <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
+      Nueva categoría
+    </button>
+  </div>
+
+  <footer class="app-footer">
+    <span id="offline-pill" class="pill pill-offline" hidden>Sin conexión · todo guardado localmente</span>
+  </footer>
+</div>
+
+<!-- Overlay used by all modals/sheets -->
+<div id="overlay" class="overlay" hidden></div>
+
+<!-- Add item sheet -->
+<div id="sheet-add-item" class="sheet" role="dialog" aria-modal="true" aria-labelledby="sheet-add-item-title" hidden>
+  <div class="sheet-handle" aria-hidden="true"></div>
+  <h2 id="sheet-add-item-title" class="sheet-title">Añadir alimento</h2>
+  <form id="form-add-item" class="sheet-form">
+    <label class="field-label" for="input-item-name">Nombre</label>
+    <input id="input-item-name" class="field-input" type="text" placeholder="p. ej. Mantequilla" autocomplete="off" maxlength="60" required>
+
+    <label class="field-label" for="select-item-category">Categoría</label>
+    <select id="select-item-category" class="field-input"></select>
+
+    <div class="sheet-actions">
+      <button type="button" class="btn btn-ghost btn-block" data-close-sheet>Cancelar</button>
+      <button type="submit" class="btn btn-primary btn-block">Añadir</button>
+    </div>
+  </form>
+</div>
+
+<!-- Add / rename category sheet -->
+<div id="sheet-category" class="sheet" role="dialog" aria-modal="true" aria-labelledby="sheet-category-title" hidden>
+  <div class="sheet-handle" aria-hidden="true"></div>
+  <h2 id="sheet-category-title" class="sheet-title">Nueva categoría</h2>
+  <form id="form-category" class="sheet-form">
+    <label class="field-label" for="input-category-name">Nombre</label>
+    <input id="input-category-name" class="field-input" type="text" placeholder="p. ej. 🍳 Desayunos" autocomplete="off" maxlength="40" required>
+    <div class="sheet-actions">
+      <button type="button" class="btn btn-ghost btn-block" data-close-sheet>Cancelar</button>
+      <button type="submit" class="btn btn-primary btn-block" id="btn-category-submit">Crear</button>
+    </div>
+  </form>
+</div>
+
+<!-- Category actions sheet (rename / delete) -->
+<div id="sheet-category-actions" class="sheet" role="dialog" aria-modal="true" aria-labelledby="sheet-category-actions-title" hidden>
+  <div class="sheet-handle" aria-hidden="true"></div>
+  <h2 id="sheet-category-actions-title" class="sheet-title">Categoría</h2>
+  <div class="sheet-form">
+    <button id="btn-rename-category" class="btn btn-secondary btn-block">Renombrar</button>
+    <button id="btn-delete-category" class="btn btn-danger btn-block">Eliminar categoría</button>
+    <div class="sheet-actions">
+      <button type="button" class="btn btn-ghost btn-block" data-close-sheet>Cerrar</button>
+    </div>
+  </div>
+</div>
+
+<!-- Delete category resolution sheet -->
+<div id="sheet-delete-category" class="sheet" role="dialog" aria-modal="true" aria-labelledby="sheet-delete-category-title" hidden>
+  <div class="sheet-handle" aria-hidden="true"></div>
+  <h2 id="sheet-delete-category-title" class="sheet-title">Eliminar categoría</h2>
+  <p id="sheet-delete-category-body" class="sheet-body"></p>
+  <div class="sheet-form">
+    <button id="btn-move-items" class="btn btn-secondary btn-block">Mover alimentos a «Sin categoría»</button>
+    <button id="btn-delete-items" class="btn btn-danger btn-block">Eliminar también los alimentos</button>
+    <div class="sheet-actions">
+      <button type="button" class="btn btn-ghost btn-block" data-close-sheet>Cancelar</button>
+    </div>
+  </div>
+</div>
+
+<!-- Item delete confirm -->
+<div id="sheet-delete-item" class="sheet" role="dialog" aria-modal="true" aria-labelledby="sheet-delete-item-title" hidden>
+  <div class="sheet-handle" aria-hidden="true"></div>
+  <h2 id="sheet-delete-item-title" class="sheet-title">Eliminar alimento</h2>
+  <p id="sheet-delete-item-body" class="sheet-body"></p>
+  <div class="sheet-actions">
+    <button type="button" class="btn btn-ghost btn-block" data-close-sheet>Cancelar</button>
+    <button id="btn-confirm-delete-item" class="btn btn-danger btn-block">Eliminar</button>
+  </div>
+</div>
+
+<!-- Toast -->
+<div id="toast" class="toast" role="status" aria-live="polite" hidden></div>
+
+<script type="module" src="app.js"></script>
+</body>
+</html>
